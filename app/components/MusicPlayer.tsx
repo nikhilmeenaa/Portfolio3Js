@@ -12,8 +12,7 @@ import {
   Music2,
 } from "lucide-react";
 
-const AUDIO_FILE_PATH =
-  "/music/Don-Toliver-Givin-Up-Not-The-One-ft-21-Savage-2-Chainz-(JustNaija.com).mp3";
+const AUDIO_FILE_PATH = "/music/lofiee.mp3";
 
 const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(true);
