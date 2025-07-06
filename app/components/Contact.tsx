@@ -12,6 +12,7 @@ import {
   Twitter,
 } from "lucide-react";
 import { useState } from "react";
+import emailjs from "@emailjs/browser";
 
 const Contact = () => {
   const [ref, inView] = useInView({
@@ -27,6 +28,10 @@ const Contact = () => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: "success" | "error" | null;
+    message: string;
+  }>({ type: null, message: "" });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -40,13 +45,37 @@ const Contact = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitStatus({ type: null, message: "" });
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const result = await emailjs.send(
+        "service_122h8b4",
+        "template_kr42f28",
+        {
+          from_name: formData.name,
+          reply_to: formData.email,
+          email: formData.email,
+          from_email: formData.email,
+          subject: formData.subject,
+          message: `Email: ${formData.email}\n\nMessage:\n${formData.message}`, // Include email in message body
+        },
+        "Hk5JAm8XZuL5RcMIk"
+      );
 
-    console.log("Form submitted:", formData);
-    setFormData({ name: "", email: "", subject: "", message: "" });
-    setIsSubmitting(false);
+      setSubmitStatus({
+        type: "success",
+        message: "Message sent successfully! I will get back to you soon.",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (error) {
+      console.error("Error sending email:", error);
+      setSubmitStatus({
+        type: "error",
+        message: "Failed to send message. Please try again later.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const containerVariants = {
@@ -243,6 +272,17 @@ const Contact = () => {
                     placeholder="Your message..."
                   />
                 </div>
+                {submitStatus.type && (
+                  <div
+                    className={`p-4 rounded-lg ${
+                      submitStatus.type === "success"
+                        ? "bg-green-500/20 text-green-200"
+                        : "bg-red-500/20 text-red-200"
+                    }`}
+                  >
+                    {submitStatus.message}
+                  </div>
+                )}
                 <motion.button
                   type="submit"
                   disabled={isSubmitting}
@@ -250,17 +290,11 @@ const Contact = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>Sending...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={20} />
-                      <span>Send Message</span>
-                    </>
-                  )}
+                  <span>{isSubmitting ? "Sending..." : "Send Message"}</span>
+                  <Send
+                    size={20}
+                    className={isSubmitting ? "animate-pulse" : ""}
+                  />
                 </motion.button>
               </form>
             </motion.div>
