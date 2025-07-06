@@ -51,6 +51,7 @@ const Skills = () => {
   const SkillBar = ({ skill, index }: { skill: any; index: number }) => {
     const [isHovered, setIsHovered] = useState(false);
     const barRef = useRef<HTMLDivElement>(null);
+    const hasAnimatedRef = useRef(false);
 
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -117,13 +118,9 @@ const Skills = () => {
           {/* Progress bar */}
           <motion.div
             className={`h-full bg-gradient-to-r ${skill.color} rounded-full relative overflow-hidden`}
-            initial={{ width: 0 }}
-            animate={inView ? { width: `${skill.level}%` } : { width: 0 }}
-            transition={{
-              duration: 1.5,
-              delay: index * 0.1,
-              ease: "easeOut",
-            }}
+            initial={false}
+            animate={{ width: inView ? `${skill.level}%` : "0%" }}
+            transition={{ duration: 1.5, delay: index * 0.1, ease: "easeOut" }}
           >
             {/* Animated shine effect */}
             <motion.div
@@ -192,6 +189,7 @@ const Skills = () => {
       <motion.div
         ref={cardRef}
         className="glass-effect p-6 rounded-xl hover-lift relative overflow-hidden"
+        initial={false}
         variants={itemVariants}
         whileHover={{
           scale: 1.05,
@@ -205,6 +203,7 @@ const Skills = () => {
         {/* Background animation */}
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10"
+          initial={false}
           animate={{
             opacity: isHovered ? 1 : 0,
             scale: isHovered ? 1 : 0.8,
@@ -214,6 +213,7 @@ const Skills = () => {
 
         <motion.h4
           className="text-lg font-semibold text-white mb-4 relative z-10"
+          initial={false}
           animate={{
             y: isHovered ? -2 : 0,
             color: isHovered ? "#3b82f6" : "#ffffff",
@@ -227,12 +227,8 @@ const Skills = () => {
             <motion.div
               key={tech}
               className="text-white/70 text-sm bg-white/5 px-3 py-2 rounded-full inline-block mr-2 mb-2 border border-white/10"
-              initial={{ opacity: 0, scale: 0 }}
+              initial={false}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                delay: index * 0.1 + techIndex * 0.05,
-                duration: 0.3,
-              }}
               whileHover={{
                 scale: 1.1,
                 backgroundColor: "rgba(59, 130, 246, 0.2)",
@@ -250,6 +246,7 @@ const Skills = () => {
             <motion.div
               key={i}
               className="absolute w-2 h-2 bg-blue-400/50 rounded-full"
+              initial={false}
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,

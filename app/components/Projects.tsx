@@ -10,7 +10,7 @@ import {
   Users,
   GitBranch,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 const Projects = () => {
   const [ref, inView] = useInView({
@@ -53,16 +53,39 @@ const Projects = () => {
     const rotateX = useTransform(mouseY, [-300, 300], [10, -10]);
     const rotateY = useTransform(mouseX, [-300, 300], [-10, 10]);
 
+    const springConfig = {
+      stiffness: 150,
+      damping: 15,
+      mass: 1,
+    };
+
+    const xSpring = useSpring(mouseX, springConfig);
+    const ySpring = useSpring(mouseY, springConfig);
+    const rotateXSpring = useSpring(rotateX, springConfig);
+    const rotateYSpring = useSpring(rotateY, springConfig);
+    const baseRotateY = useMotionValue(0);
+
+    useEffect(() => {
+      baseRotateY.set(isFlipped ? 180 : 0);
+    }, [isFlipped, baseRotateY]);
+
     const handleMouseMove = (e: React.MouseEvent) => {
-      if (!cardRef.current) return;
+      if (!cardRef.current || isFlipped) return;
       const rect = cardRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
-      mouseX.set(e.clientX - centerX);
-      mouseY.set(e.clientY - centerY);
+      mouseX.set((e.clientX - centerX) * 0.05);
+      mouseY.set((e.clientY - centerY) * 0.05);
     };
 
     const handleMouseLeave = () => {
+      if (isFlipped) return;
+      mouseX.set(0);
+      mouseY.set(0);
+    };
+
+    const handleFlip = () => {
+      setIsFlipped(!isFlipped);
       mouseX.set(0);
       mouseY.set(0);
     };
@@ -75,27 +98,31 @@ const Projects = () => {
         className={`relative ${cardClass} perspective-1000 group`}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        onHoverStart={() => setHoveredProject(project.title)}
-        onHoverEnd={() => setHoveredProject(null)}
+        onHoverStart={() => !isFlipped && setHoveredProject(project.title)}
+        onHoverEnd={() => !isFlipped && setHoveredProject(null)}
         variants={itemVariants}
+        initial={false}
         style={{ perspective: 1000 }}
       >
         <motion.div
           className="relative w-full h-full preserve-3d cursor-pointer"
+          initial={false}
           style={{
-            rotateX,
-            rotateY,
+            rotateX: rotateXSpring,
+            rotateY: baseRotateY,
             transformStyle: "preserve-3d",
           }}
-          animate={{
-            rotateY: isFlipped ? 180 : 0,
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{
+            duration: 0.8,
+            ease: [0.16, 1, 0.3, 1],
           }}
-          transition={{ duration: 0.6 }}
-          onClick={() => setIsFlipped(!isFlipped)}
+          onClick={handleFlip}
         >
           {/* Front of card */}
           <motion.div
             className="absolute inset-0 w-full h-full backface-hidden glass-effect rounded-xl overflow-hidden"
+            initial={false}
             style={{ backfaceVisibility: "hidden" }}
           >
             <div className="relative h-full">
@@ -103,31 +130,49 @@ const Projects = () => {
                 src={project.image}
                 alt={project.title}
                 className="w-full h-2/3 object-cover"
+                initial={false}
                 whileHover={{ scale: 1.1 }}
-                transition={{ duration: 0.3 }}
+                transition={{
+                  duration: 0.6,
+                  ease: [0.34, 1.56, 0.64, 1], // Custom spring-like curve
+                }}
               />
 
               {/* Overlay gradient */}
               <motion.div
                 className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
+                initial={false}
+                animate={{ opacity: hoveredProject === project.title ? 1 : 0 }}
+                transition={{
+                  duration: 0.5,
+                  ease: "easeInOut",
+                }}
               />
 
               {/* Floating action buttons */}
               <motion.div
                 className="absolute top-4 right-4 flex space-x-2"
-                initial={{ opacity: 0, y: -20 }}
-                whileHover={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
+                initial={false}
+                animate={{
+                  opacity: hoveredProject === project.title ? 1 : 0,
+                  y: hoveredProject === project.title ? 0 : -20,
+                }}
+                transition={{
+                  duration: 0.5,
+                  ease: [0.34, 1.56, 0.64, 1],
+                }}
               >
                 <motion.a
                   href={project.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+                  initial={false}
                   whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{
+                    duration: 0.3,
+                    ease: [0.34, 1.56, 0.64, 1],
+                  }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Github size={16} className="text-white" />
@@ -137,7 +182,12 @@ const Projects = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+                  initial={false}
                   whileHover={{ scale: 1.1, rotate: -5 }}
+                  transition={{
+                    duration: 0.3,
+                    ease: [0.34, 1.56, 0.64, 1],
+                  }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <ExternalLink size={16} className="text-white" />
@@ -147,18 +197,14 @@ const Projects = () => {
               <div className="absolute bottom-0 left-0 right-0 p-6">
                 <motion.h4
                   className="text-xl font-semibold text-white mb-2"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={false}
                 >
                   {project.title}
                 </motion.h4>
 
                 <motion.p
                   className="text-white/70 mb-4 line-clamp-2"
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.1 + 0.1 }}
+                  initial={false}
                 >
                   {project.description}
                 </motion.p>
@@ -170,12 +216,14 @@ const Projects = () => {
                       <motion.span
                         key={tech}
                         className="px-3 py-1 bg-white/10 text-white/80 rounded-full text-sm backdrop-blur-sm"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: index * 0.1 + techIndex * 0.05 }}
+                        initial={false}
                         whileHover={{
                           scale: 1.05,
                           backgroundColor: "rgba(255,255,255,0.2)",
+                        }}
+                        transition={{
+                          duration: 0.3,
+                          ease: [0.34, 1.56, 0.64, 1],
                         }}
                       >
                         {tech}
@@ -194,58 +242,58 @@ const Projects = () => {
           {/* Back of card */}
           <motion.div
             className="absolute inset-0 w-full h-full backface-hidden glass-effect rounded-xl p-6 flex flex-col justify-between"
+            initial={false}
             style={{
               backfaceVisibility: "hidden",
               transform: "rotateY(180deg)",
             }}
           >
-            <div>
-              <h4 className="text-xl font-semibold text-white mb-4">
+            <div className="flex flex-col h-full">
+              <h4 className="text-xl font-semibold text-white mb-3">
                 {project.title}
               </h4>
-              <p className="text-white/70 mb-6">{project.description}</p>
+              <p className="text-white/70 mb-4 text-sm">
+                {project.description}
+              </p>
 
-              {/* Project stats */}
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center">
-                  <Star className="mx-auto mb-2 text-yellow-400" size={20} />
-                  <p className="text-white/60 text-sm">Featured</p>
-                </div>
-                <div className="text-center">
-                  <Users className="mx-auto mb-2 text-blue-400" size={20} />
-                  <p className="text-white/60 text-sm">Team Project</p>
-                </div>
-                <div className="text-center">
-                  <GitBranch
-                    className="mx-auto mb-2 text-green-400"
-                    size={20}
-                  />
-                  <p className="text-white/60 text-sm">Open Source</p>
+              {/* All technologies */}
+              <div className="mb-4">
+                <p className="text-white/80 text-sm mb-2">Technologies:</p>
+                <div className="flex flex-wrap gap-1">
+                  {project.technologies.map((tech: string) => (
+                    <span
+                      key={tech}
+                      className="px-2 py-1 bg-white/10 text-white/70 rounded-full text-xs"
+                    >
+                      {tech}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <motion.a
-                href={project.demo}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold text-center"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                View Live Demo
-              </motion.a>
-              <motion.a
-                href={project.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full px-4 py-3 border-2 border-white/30 text-white rounded-lg font-semibold text-center hover:bg-white/10"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                View Source Code
-              </motion.a>
+              {/* Buttons in a row */}
+              <div className="mt-auto flex gap-3">
+                <motion.a
+                  href={project.demo}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium text-center text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Live Demo
+                </motion.a>
+                <motion.a
+                  href={project.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 px-4 py-2 border border-white/30 text-white rounded-lg font-medium text-center hover:bg-white/10 text-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Source Code
+                </motion.a>
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -253,12 +301,15 @@ const Projects = () => {
         {/* Glow effect */}
         <motion.div
           className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-xl -z-10"
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={false}
           animate={{
             opacity: hoveredProject === project.title ? 1 : 0,
             scale: hoveredProject === project.title ? 1.1 : 0.8,
           }}
-          transition={{ duration: 0.3 }}
+          transition={{
+            duration: 0.6,
+            ease: "easeInOut",
+          }}
         />
       </motion.div>
     );
